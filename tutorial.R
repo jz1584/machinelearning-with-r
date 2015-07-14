@@ -78,9 +78,64 @@ prop.table(t1,margin = 2)# 2 for column
 qplot(wage,colour=education,data=training,geom='density')
 
 #########
-##preprocessing:
+##preprocessing one : standariizing vars 
 rm(list = ls())
+library(caret);library(kernlab);data(spam)
+inTrain<-createDataPartition(y=spam$type,p=0.75,list=FALSE)
+trainSet<-spam[inTrain,]
+testSet<-spam[-inTrain,]
+#highly skewed data 
+hist(trainSet$capitalAve,main='skewness',xlab = 'ave capital run length' )
 
+################################preprocess method 1: eg. capitalAve
+#standarized to a 'new variable'
+trainSet$capaveSTD<-(trainSet$capitalAve-mean(trainSet$capitalAve))/sd(trainSet$capitalAve)
+mean(trainSet$capaveSTD);mean(trainSet$capitalAve)
+#standarized the testSet
+testSet$capaveSTD<-(testSet$capitalAve-mean(trainSet$capitalAve))/sd(trainSet$capitalAve)
+mean(testSet$capaveSTD);mean(testSet$capitalAve)
+################################preprocess method 2:#using pre-Process function: preProcess
+?preProcess
+preObj<-preProcess(trainSet[,-58],method=c("center","scale"))# create a standard
+trainSet$capaveSTD<-predict(preObj,trainSet[,-58])$capitalAve# 
+testSet$capaveSTD<-predict(preObj,testSet[,-58])$capitalAve#applied to testSet using training set standard
+mean(testSet$capaveSTD);mean(trainSet$capaveSTD);
+sd(testSet$capaveSTD);sd(trainSet$capaveSTD)
+################################preprocess method 3: standarized all variables at once in model function
+set.seed(2)
+trainMod2<-train(type~.,data=trainSet,preProcess=c("center","scale"),method="glm")
 
+#########
+##preprocessing two: Box-Cox transforms
+preObj<-preProcess(trainSet[,-58],method=c("BoxCox"))
+trainSet$capaveSTD<-predict(preObj,trainSet[,-58])$capitalAve
+par(mfrow=c(1,2));hist(trainSet$capaveSTD);qqnorm(trainSet$capaveSTD)
+#comment: doesn't take care of values repeated
+
+#########
+##preprocessing three: imputing data
+#assuming there is missing data 
+set.seed(3)
+
+#create a new var with random missing data, NA, for practicing purpose
+trainSet$capAVE<-trainSet$capitalAve
+selectNA<-rbinom(dim(trainSet)[1],size=1,prob = 0.05)==1# trans to true or false values
+trainSet$capAVE[selectNA]<-NA# filled in NA
+
+#impute and 'standardize'
+#preprocessing with knnImpute silently removes any columns containing NA values
+preObj<-preProcess(trainSet[,-58],method = 'knnImpute')#using k-nearest neighbor imput, then standarized
+capAVE.P<-predict(preObj,trainSet[,-58])$capAVE
+
+#Standarized true values to compare with previous results
+capAVE.T<-trainSet$capitalAve
+capAVE.T<-(capAVE.T-mean(capAVE.T))/sd(capAVE.T)
+plot((capAVE.T-capAVE.P))#most predict value closed to true values(close to zero error)
+#or check
+quantile(capAVE.P-capAVE.T)
+quantile((capAVE.P-capAVE.T)[selectNA])#error for imputed only values
+quantile(capAVE.P-capAVE.T)
+par(mfrow=c(1,2))
+plot((capAVE.T-capAVE.P)[!selectNA],main='non-impute value');plot((capAVE.T-capAVE.P)[selectNA],main='imputed value')
 
 
