@@ -46,7 +46,7 @@ confusionMatrix(pred,testSet$type)
 
 
 #########
-##plotting vars example:Wage data
+##Visilization example: plotting vars:Wage data
 rm(list = ls())
 library(ISLR)
 library(ggplot2)
@@ -65,10 +65,21 @@ qq<-qplot(age,logwage,colour=education,data=training)
 #geometric smoothing
 qq+ geom_smooth(method='lm',formula=y~x)
 
-#categoricalize numercial veriables: gen new var
-wage.c<-cut2(training$wage,g=3)
+#categoricalize numercial veriables without creating a new variable
+wage.c<-cut2(training$wage,g=3)#g is the number of quantile groups
+summary(wage.c)
+plot.wa<-qplot(wage.c,age,data=training,fill=wage.c,geom=c('boxplot'))
+plot.wa2<-qplot(wage.c,age,data=training,fill=wage.c,geom=c('boxplot','jitter'))
+plot.wa;plot.wa2
 
+t1<-table(wage.c,training$jobclass)
+prop.table(t1,margin = 2)# 2 for column
 
+qplot(wage,colour=education,data=training,geom='density')
+
+#########
+##preprocessing:
+rm(list = ls())
 
 
 
